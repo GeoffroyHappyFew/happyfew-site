@@ -1,6 +1,7 @@
 'use client';
 import { Fragment, useState } from 'react';
 import Link from 'next/link';
+import { envoyerDemande, PIEGE_STYLE } from '@/lib/demande';
 
 const CSS = "\nbody{margin:0;background:#FFFFFF}\na{color:#1F3A2E}a:hover{color:#132A20}\nh1,h2{font-family:'DM Serif Display',Georgia,serif;font-weight:400;margin:0;letter-spacing:0}h3{font-family:'Inter Tight',Inter,sans-serif;margin:0;letter-spacing:-0.01em}\n.ph{background:#E9E4DA;color:#5B6470;display:flex;align-items:center;justify-content:center;text-align:center;font-size:14px}\n.wrap{max-width:1200px;margin:0 auto;padding-left:24px;padding-right:24px}\n.nav a{color:#1A1F24;text-decoration:none}\n.in{display:block;width:100%;box-sizing:border-box;margin-top:6px;min-height:50px;border:1px solid #D9D3C7;border-radius:12px;padding:0 14px;font:16px Inter,sans-serif;background:#FFFFFF}\n@media (max-width:640px){h1{font-size:34px!important;line-height:1.12!important}h2{font-size:26px!important}.dnav,.hide-m{display:none!important}.burger{display:flex!important}.wrap{padding-left:16px!important;padding-right:16px!important}.gal{grid-template-columns:1fr 1fr!important;grid-template-rows:240px 110px 110px!important}.gal>div:first-child{grid-column:1 / 3;grid-row:auto!important}.mbar{display:flex!important}body{padding-bottom:84px}.heroimg{min-height:280px!important}}\n";
 const PROPS = {};
@@ -9,6 +10,17 @@ export default function ContactPage() {
   const props = PROPS;
   const [state, setFullState] = useState({ motif: 0 });
   const setState = (patch) => setFullState((s) => ({ ...s, ...patch }));
+  const [envoi, setEnvoi] = useState({ ok: false, msg: '', enCours: false });
+  const envoyer = async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const d = Object.fromEntries(new FormData(form));
+    setEnvoi({ ok: false, msg: '', enCours: true });
+    const motif = ['Vendre', 'Acheter', 'Un bien précis', 'Autre'][state.motif] || 'Autre';
+    const r = await envoyerDemande({ type: 'contact', nom: d.nom, email: d.email, telephone: d.telephone, message: d.message, site: d.site, details: { motif } });
+    if (r.ok) { form.reset(); setEnvoi({ ok: true, msg: 'Merci, votre message est bien envoyé. Nous vous répondons rapidement.', enCours: false }); }
+    else setEnvoi({ ok: false, msg: r.error, enCours: false });
+  };
   const vals = { ...PROPS, ...(function () {
     return {
       motifs: ['Vendre', 'Acheter', 'Un bien précis', 'Autre'].map((l, i) => { const on = state.motif === i; return { l, pick: () => setState({ motif: i }), bd: on ? '#1F3A2E' : '#D9D3C7', bg: on ? '#E8EFEA' : '#FFFFFF' }; }),
@@ -37,15 +49,15 @@ export default function ContactPage() {
 <div style={{display: "flex", flexWrap: "wrap", gap: "10px"}}>
 {(motifs || []).map((m, __i) => (<Fragment key={__i}><button type="button" onClick={m.pick} style={{minHeight: "48px", padding: "0 20px", borderRadius: "12px", cursor: "pointer", font: "600 15px Inter,sans-serif", border: `1.5px solid ${m.bd}`, background: m.bg, color: "#1A1F24"}}>{m.l}</button></Fragment>))}
 </div>
-<form style={{display: "flex", flexDirection: "column", gap: "14px"}}>
+<form onSubmit={envoyer} noValidate style={{display: "flex", flexDirection: "column", gap: "14px"}}>
 <div style={{display: "flex", flexWrap: "wrap", gap: "12px"}}>
-<label style={{flex: "1 1 240px", fontSize: "14px", fontWeight: "600"}}>Prénom et nom<input type="text" className="in" /></label>
-<label style={{flex: "1 1 240px", fontSize: "14px", fontWeight: "600"}}>E-mail<input type="email" className="in" /></label>
+<label style={{flex: "1 1 240px", fontSize: "14px", fontWeight: "600"}}>Prénom et nom<input type="text" name="nom" autoComplete="name" className="in" /></label>
+<label style={{flex: "1 1 240px", fontSize: "14px", fontWeight: "600"}}>E-mail<input type="email" name="email" autoComplete="email" className="in" /></label>
 </div>
-<label style={{fontSize: "14px", fontWeight: "600"}}>Téléphone (facultatif)<input type="tel" className="in" /></label>
-<label style={{fontSize: "14px", fontWeight: "600"}}>Votre message<textarea rows="5" className="in" style={{padding: "12px 14px", resize: "vertical"}}></textarea></label>
+<label style={{fontSize: "14px", fontWeight: "600"}}>Téléphone (facultatif)<input type="tel" name="telephone" autoComplete="tel" className="in" /></label>
+<label style={{fontSize: "14px", fontWeight: "600"}}>Votre message<textarea name="message" rows="5" className="in" style={{padding: "12px 14px", resize: "vertical"}}></textarea></label>
 <span style={{fontSize: "13px", lineHeight: "1.5", color: "#4A5360"}}>Vos données servent uniquement à traiter votre demande. <Link href="/mentions-legales#confidentialite">Politique de confidentialité</Link></span>
-<button type="button" style={{alignSelf: "flex-start", minHeight: "52px", padding: "0 30px", border: "0", borderRadius: "999px", background: "#1F3A2E", color: "#FFFFFF", font: "600 16px Inter,sans-serif", cursor: "pointer"}}>Envoyer</button>
+<input type="text" name="site" tabIndex={-1} autoComplete="off" aria-hidden="true" style={PIEGE_STYLE} /><button type="submit" disabled={envoi.enCours} style={{alignSelf: "flex-start", minHeight: "52px", padding: "0 30px", border: "0", borderRadius: "999px", background: "#1F3A2E", color: "#FFFFFF", font: "600 16px Inter,sans-serif", cursor: "pointer"}}>{envoi.enCours ? "Envoi…" : "Envoyer"}</button>{envoi.msg ? (<p role="status" style={{margin: 0, fontSize: "15px", lineHeight: 1.5, color: envoi.ok ? "#1F3A2E" : "#B42318", fontWeight: 600}}>{envoi.msg}</p>) : null}
 </form>
 </section>
 <aside style={{flex: "1 1 360px", minWidth: "0", display: "flex", flexDirection: "column", gap: "20px"}}>

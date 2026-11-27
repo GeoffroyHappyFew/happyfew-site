@@ -1,6 +1,7 @@
 'use client';
 import { Fragment, useState } from 'react';
 import Link from 'next/link';
+import { envoyerDemande, PIEGE_STYLE } from '@/lib/demande';
 
 const CSS = "\n.wrap{max-width:1200px;margin:0 auto;padding-left:24px;padding-right:24px}\nbody{margin:0;background:#FFFFFF}\nh1,h2{font-family:'DM Serif Display',Georgia,serif;font-weight:400;margin:0;letter-spacing:0}h3{font-family:'Inter Tight',Inter,sans-serif;margin:0;letter-spacing:-0.01em}\n@media (max-width:640px){h1{font-size:34px!important;line-height:1.12!important}h2{font-size:26px!important}.dnav,.hide-m{display:none!important}.burger{display:flex!important}.wrap{padding-left:16px!important;padding-right:16px!important}.gal{grid-template-columns:1fr 1fr!important;grid-template-rows:240px 110px 110px!important}.gal>div:first-child{grid-column:1 / 3;grid-row:auto!important}}\n";
 const PROPS = {};
@@ -9,6 +10,25 @@ export default function EstimationPage() {
   const props = PROPS;
   const [state, setFullState] = useState({ step: 1, type: 0, slot: 0 });
   const setState = (patch) => setFullState((s) => ({ ...s, ...patch }));
+  const [saisie, setSaisie] = useState({});
+  const garder = (e) => { const { name, value } = e.target; setSaisie((p) => ({ ...p, [name]: value })); };
+  const [envoi, setEnvoi] = useState({ ok: false, msg: '', enCours: false });
+  const typesBien = ['Appartement', 'Maison', 'Local commercial'];
+  const creneaux = ['Cette semaine', 'Samedi matin', 'En semaine, le soir'];
+  const envoyerEstimation = async () => {
+    const d = saisie;
+    if (!d.email && !d.telephone) { setEnvoi({ ok: false, msg: 'Indiquez un e-mail ou un téléphone pour recevoir votre estimation.', enCours: false }); return false; }
+    setEnvoi({ ok: false, msg: '', enCours: true });
+    const r = await envoyerDemande({ type: 'estimation', nom: d.nom, email: d.email, telephone: d.telephone,
+      details: { adresse: d.adresse, type_bien: typesBien[state.type], surface: d.surface, pieces: d.pieces, etage: d.etage } });
+    setEnvoi({ ok: r.ok, msg: r.ok ? '' : r.error, enCours: false });
+    return r.ok;
+  };
+  const prendreRdv = async () => {
+    const d = saisie;
+    const r = await envoyerDemande({ type: 'contact', nom: d.nom, email: d.email, telephone: d.telephone, message: 'Rendez-vous d’estimation souhaité : ' + creneaux[state.slot], details: { adresse: d.adresse, creneau: creneaux[state.slot] } });
+    setEnvoi({ ok: r.ok, msg: r.ok ? 'C’est noté : nous vous appelons pour confirmer le rendez-vous.' : r.error, enCours: false });
+  };
   const vals = { ...PROPS, ...(function () {
     const s = state.step;
     return {
@@ -16,7 +36,7 @@ export default function EstimationPage() {
       stepLabel: s < 4 ? 'Étape ' + s + ' sur 3' : 'Votre résultat',
       slots: ['Cette semaine', 'Samedi matin', 'En semaine, le soir'].map((l, i) => ({ l, pick: () => setState({ slot: i }), bd: state.slot === i ? '#1F3A2E' : '#D9D3C7', bg: state.slot === i ? '#E8EFEA' : '#FFFFFF' })),
       cta: s === 3 ? 'Voir mon estimation' : 'Continuer',
-      next: () => setState({ step: s < 4 ? s + 1 : 4 }),
+      next: async () => { if (s === 3 && !(await envoyerEstimation())) return; setState({ step: s < 4 ? s + 1 : 4 }); },
       back: () => setState({ step: s > 1 ? s - 1 : 1 }),
       bars: [1, 2, 3].map((i) => ({ c: i <= s ? '#1F3A2E' : '#E7E2D8' })),
       types: ['Appartement', 'Maison', 'Local commercial'].map((l, i) => ({ l, pick: () => setState({ type: i }), bd: state.type === i ? '#1F3A2E' : '#D9D3C7', bg: state.type === i ? '#E8EFEA' : '#FFFFFF' }))
@@ -52,7 +72,7 @@ export default function EstimationPage() {
 {(s1) ? (<>
 <div style={{display: "flex", flexDirection: "column", gap: "20px"}}>
 <h1 style={{fontSize: "36px"}}>Où se trouve votre bien ?</h1>
-<label style={{fontSize: "14px", fontWeight: "600"}}>Adresse<input type="text" placeholder="12 rue de Fontenay, 94300 Vincennes" style={{display: "block", width: "100%", boxSizing: "border-box", marginTop: "6px", minHeight: "52px", border: "1px solid #D9D3C7", borderRadius: "12px", padding: "0 14px", font: "17px Inter,sans-serif", background: "#FFFFFF"}} /></label>
+<label style={{fontSize: "14px", fontWeight: "600"}}>Adresse<input name="adresse" defaultValue={saisie.adresse} onChange={garder} type="text" placeholder="12 rue de Fontenay, 94300 Vincennes" style={{display: "block", width: "100%", boxSizing: "border-box", marginTop: "6px", minHeight: "52px", border: "1px solid #D9D3C7", borderRadius: "12px", padding: "0 14px", font: "17px Inter,sans-serif", background: "#FFFFFF"}} /></label>
 <span style={{fontSize: "14px", fontWeight: "600"}}>Type de bien</span>
 <div style={{display: "flex", flexWrap: "wrap", gap: "10px"}}>
 {(types || []).map((t, __i) => (<Fragment key={__i}><button type="button" onClick={t.pick} style={{minHeight: "52px", padding: "0 24px", borderRadius: "12px", cursor: "pointer", font: "600 15px Inter,sans-serif", border: `1.5px solid ${t.bd}`, background: t.bg, color: "#1A1F24"}}>{t.l}</button></Fragment>))}
@@ -63,9 +83,9 @@ export default function EstimationPage() {
 <div style={{display: "flex", flexDirection: "column", gap: "20px"}}>
 <h1 style={{fontSize: "36px"}}>Parlez-moi de votre bien</h1>
 <div style={{display: "flex", flexWrap: "wrap", gap: "12px"}}>
-<label style={{flex: "1 1 160px", fontSize: "14px", fontWeight: "600"}}>Surface (m²)<input type="number" placeholder="85" style={{display: "block", width: "100%", boxSizing: "border-box", marginTop: "6px", minHeight: "52px", border: "1px solid #D9D3C7", borderRadius: "12px", padding: "0 14px", font: "17px Inter,sans-serif"}} /></label>
-<label style={{flex: "1 1 160px", fontSize: "14px", fontWeight: "600"}}>Pièces<input type="number" placeholder="4" style={{display: "block", width: "100%", boxSizing: "border-box", marginTop: "6px", minHeight: "52px", border: "1px solid #D9D3C7", borderRadius: "12px", padding: "0 14px", font: "17px Inter,sans-serif"}} /></label>
-<label style={{flex: "1 1 160px", fontSize: "14px", fontWeight: "600"}}>Étage<input type="text" placeholder="3e avec ascenseur" style={{display: "block", width: "100%", boxSizing: "border-box", marginTop: "6px", minHeight: "52px", border: "1px solid #D9D3C7", borderRadius: "12px", padding: "0 14px", font: "17px Inter,sans-serif"}} /></label>
+<label style={{flex: "1 1 160px", fontSize: "14px", fontWeight: "600"}}>Surface (m²)<input name="surface" defaultValue={saisie.surface} onChange={garder} type="number" placeholder="85" style={{display: "block", width: "100%", boxSizing: "border-box", marginTop: "6px", minHeight: "52px", border: "1px solid #D9D3C7", borderRadius: "12px", padding: "0 14px", font: "17px Inter,sans-serif"}} /></label>
+<label style={{flex: "1 1 160px", fontSize: "14px", fontWeight: "600"}}>Pièces<input name="pieces" defaultValue={saisie.pieces} onChange={garder} type="number" placeholder="4" style={{display: "block", width: "100%", boxSizing: "border-box", marginTop: "6px", minHeight: "52px", border: "1px solid #D9D3C7", borderRadius: "12px", padding: "0 14px", font: "17px Inter,sans-serif"}} /></label>
+<label style={{flex: "1 1 160px", fontSize: "14px", fontWeight: "600"}}>Étage<input name="etage" defaultValue={saisie.etage} onChange={garder} type="text" placeholder="3e avec ascenseur" style={{display: "block", width: "100%", boxSizing: "border-box", marginTop: "6px", minHeight: "52px", border: "1px solid #D9D3C7", borderRadius: "12px", padding: "0 14px", font: "17px Inter,sans-serif"}} /></label>
 </div>
 <span style={{fontSize: "14px", fontWeight: "600"}}>État général</span>
 <div style={{display: "flex", flexWrap: "wrap", gap: "10px"}}><span style={{minHeight: "48px", display: "inline-flex", alignItems: "center", padding: "0 18px", borderRadius: "12px", border: "1.5px solid #D9D3C7", background: "#FFFFFF"}}>À rénover</span><span style={{minHeight: "48px", display: "inline-flex", alignItems: "center", padding: "0 18px", borderRadius: "12px", border: "1.5px solid #1F3A2E", background: "#E8EFEA"}}>Bon état</span><span style={{minHeight: "48px", display: "inline-flex", alignItems: "center", padding: "0 18px", borderRadius: "12px", border: "1.5px solid #D9D3C7", background: "#FFFFFF"}}>Refait à neuf</span></div>
@@ -75,10 +95,10 @@ export default function EstimationPage() {
 <div style={{display: "flex", flexDirection: "column", gap: "20px"}}>
 <h1 style={{fontSize: "36px"}}>Où vous envoyer l’estimation ?</h1>
 <div style={{display: "flex", flexWrap: "wrap", gap: "12px"}}>
-<label style={{flex: "1 1 240px", fontSize: "14px", fontWeight: "600"}}>Prénom et nom<input type="text" style={{display: "block", width: "100%", boxSizing: "border-box", marginTop: "6px", minHeight: "52px", border: "1px solid #D9D3C7", borderRadius: "12px", padding: "0 14px", font: "17px Inter,sans-serif"}} /></label>
-<label style={{flex: "1 1 240px", fontSize: "14px", fontWeight: "600"}}>E-mail<input type="email" style={{display: "block", width: "100%", boxSizing: "border-box", marginTop: "6px", minHeight: "52px", border: "1px solid #D9D3C7", borderRadius: "12px", padding: "0 14px", font: "17px Inter,sans-serif"}} /></label>
+<label style={{flex: "1 1 240px", fontSize: "14px", fontWeight: "600"}}>Prénom et nom<input type="text" name="nom" autoComplete="name" defaultValue={saisie.nom} onChange={garder} style={{display: "block", width: "100%", boxSizing: "border-box", marginTop: "6px", minHeight: "52px", border: "1px solid #D9D3C7", borderRadius: "12px", padding: "0 14px", font: "17px Inter,sans-serif"}} /></label>
+<label style={{flex: "1 1 240px", fontSize: "14px", fontWeight: "600"}}>E-mail<input type="email" name="email" autoComplete="email" defaultValue={saisie.email} onChange={garder} style={{display: "block", width: "100%", boxSizing: "border-box", marginTop: "6px", minHeight: "52px", border: "1px solid #D9D3C7", borderRadius: "12px", padding: "0 14px", font: "17px Inter,sans-serif"}} /></label>
 </div>
-<label style={{fontSize: "14px", fontWeight: "600"}}>Téléphone (facultatif)<input type="tel" style={{display: "block", width: "100%", boxSizing: "border-box", marginTop: "6px", minHeight: "52px", border: "1px solid #D9D3C7", borderRadius: "12px", padding: "0 14px", font: "17px Inter,sans-serif"}} /></label>
+<label style={{fontSize: "14px", fontWeight: "600"}}>Téléphone (facultatif)<input type="tel" name="telephone" autoComplete="tel" defaultValue={saisie.telephone} onChange={garder} style={{display: "block", width: "100%", boxSizing: "border-box", marginTop: "6px", minHeight: "52px", border: "1px solid #D9D3C7", borderRadius: "12px", padding: "0 14px", font: "17px Inter,sans-serif"}} /></label>
 <span style={{fontSize: "13px", color: "#4A5360"}}>Vos coordonnées servent uniquement à vous envoyer l’estimation. Aucun démarchage.</span>
 </div>
 </>) : null}
@@ -90,13 +110,13 @@ export default function EstimationPage() {
 <p style={{margin: "0", fontSize: "16px", lineHeight: "1.6", color: "#3A434F"}}>Votre conseiller vient voir le bien et vous remet un avis de valeur écrit sous 48 h. Gratuit et sans engagement.</p>
 <span style={{fontSize: "14px", fontWeight: "600"}}>Vos disponibilités</span>
 <div style={{display: "flex", flexWrap: "wrap", gap: "10px"}}>{(slots || []).map((t, __i) => (<Fragment key={__i}><button type="button" onClick={t.pick} style={{minHeight: "48px", padding: "0 18px", borderRadius: "12px", cursor: "pointer", font: "600 15px Inter,sans-serif", border: `1.5px solid ${t.bd}`, background: t.bg, color: "#1A1F24"}}>{t.l}</button></Fragment>))}</div>
-<button type="button" style={{alignSelf: "flex-start", minHeight: "52px", padding: "0 32px", border: "0", borderRadius: "999px", background: "#1F3A2E", color: "#FFFFFF", font: "600 16px Inter,sans-serif", cursor: "pointer"}}>Prendre rendez-vous</button>
+<button type="button" onClick={prendreRdv} style={{alignSelf: "flex-start", minHeight: "52px", padding: "0 32px", border: "0", borderRadius: "999px", background: "#1F3A2E", color: "#FFFFFF", font: "600 16px Inter,sans-serif", cursor: "pointer"}}>Prendre rendez-vous</button>{envoi.msg && s4 ? (<p role="status" style={{margin: 0, fontSize: "15px", color: envoi.ok ? "#1F3A2E" : "#B42318", fontWeight: 600}}>{envoi.msg}</p>) : null}
 </div>
 </>) : null}
 {(notDone) ? (<>
 <div style={{display: "flex", gap: "12px", flexWrap: "wrap"}}>
 {(canBack) ? (<><button type="button" onClick={back} style={{minHeight: "52px", padding: "0 24px", border: "1.5px solid #1A1F24", borderRadius: "999px", background: "transparent", font: "600 16px Inter,sans-serif", cursor: "pointer"}}>Retour</button></>) : null}
-<button type="button" onClick={next} style={{minHeight: "52px", padding: "0 32px", border: "0", borderRadius: "999px", background: "#1F3A2E", color: "#FFFFFF", font: "600 16px Inter,sans-serif", cursor: "pointer"}}>{cta}</button>
+<button type="button" onClick={next} style={{minHeight: "52px", padding: "0 32px", border: "0", borderRadius: "999px", background: "#1F3A2E", color: "#FFFFFF", font: "600 16px Inter,sans-serif", cursor: "pointer"}}>{cta}</button>{envoi.msg && !s4 ? (<p role="status" style={{margin: 0, fontSize: "15px", lineHeight: 1.5, color: envoi.ok ? "#1F3A2E" : "#B42318", fontWeight: 600}}>{envoi.msg}</p>) : null}
 </div>
 </>) : null}
 </div>

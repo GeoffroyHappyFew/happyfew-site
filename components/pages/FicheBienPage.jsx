@@ -1,6 +1,7 @@
 'use client';
 import { Fragment, useState } from 'react';
 import Link from 'next/link';
+import { envoyerDemande, PIEGE_STYLE } from '@/lib/demande';
 
 const CSS = "\nbody{margin:0;background:#FFFFFF}\na{color:#1F3A2E}a:hover{color:#132A20}\nh1,h2{font-family:'DM Serif Display',Georgia,serif;font-weight:400;margin:0;letter-spacing:0}\nh3{font-family:'Inter Tight',Inter,sans-serif;margin:0}\n.ph{background:#E9E4DA;color:#5B6470;display:flex;align-items:center;justify-content:center;text-align:center;font-size:14px}\n.wrap{max-width:1200px;margin:0 auto;padding-left:24px;padding-right:24px}\n@media (max-width:640px){h1{font-size:30px!important}h2{font-size:24px!important}.dnav,.hide-m{display:none!important}.burger{display:flex!important}.wrap{padding-left:16px!important;padding-right:16px!important}.mbar{display:flex!important}body{padding-bottom:84px}.slide{height:280px!important}}\n";
 const PROPS = {"honoraires": "charge vendeur"};
@@ -9,6 +10,17 @@ export default function FicheBienPage() {
   const props = PROPS;
   const [state, setFullState] = useState({ photo: 0, tab: 0, slot: 1 });
   const setState = (patch) => setFullState((s) => ({ ...s, ...patch }));
+  const [envoi, setEnvoi] = useState({ ok: false, msg: '', enCours: false });
+  const creneaux = ['Samedi matin', 'Samedi après-midi', 'En semaine, le soir', 'Autre'];
+  const demanderVisite = async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const d = Object.fromEntries(new FormData(form));
+    setEnvoi({ ok: false, msg: '', enCours: true });
+    const r = await envoyerDemande({ type: 'visite', nom: d.nom, email: d.email, telephone: d.telephone, site: d.site, bien_ref: 'HF0203', details: { creneau: creneaux[state.slot] } });
+    if (r.ok) { form.reset(); setEnvoi({ ok: true, msg: 'Merci ! Myriam vous recontacte pour confirmer la visite.', enCours: false }); }
+    else setEnvoi({ ok: false, msg: r.error, enCours: false });
+  };
   const vals = { ...PROPS, ...(function () {
     const photos = [{ img: '/images/HF0203V-01.webp', alt: 'Séjour exposé plein sud' }, { img: '/images/HF0203V-02.webp', alt: 'Séjour et coin repas' }, { img: '/images/HF0203V-03.webp', alt: 'Salon' }, { img: '/images/HF0203V-04.webp', alt: 'Balcon filant sur le jardin arboré' }, { img: '/images/HF0203V-05.webp', alt: 'Vue sur le jardin de la résidence' }, { img: '/images/HF0203V-06.webp', alt: 'Cuisine indépendante équipée' }, { img: '/images/HF0203V-07.webp', alt: 'Cuisine, vue sur les arbres' }, { img: '/images/HF0203V-08.webp', alt: 'Chambre' }, { img: '/images/HF0203V-09.webp', alt: 'Chambre parentale' }, { img: '/images/HF0203V-10.webp', alt: 'Salle de bains' }, { img: '/images/HF0203V-11.webp', alt: 'Séjour, autre vue' }];
     const total = photos.length, i = state.photo;
@@ -125,13 +137,17 @@ export default function FicheBienPage() {
 <aside style={{flex: "1 1 340px", minWidth: "0", border: "1px solid #ECE8E0", borderRadius: "18px", padding: "24px", display: "flex", flexDirection: "column", gap: "16px", boxShadow: "0 10px 30px rgba(26,31,36,0.06)"}}>
 <div style={{display: "flex", flexDirection: "column", gap: "4px"}}><span style={{font: "700 28px 'Inter Tight',sans-serif"}}>380 000 €</span>{(chargeAcq) ? (<><span style={{fontSize: "14px", lineHeight: "1.55", color: "#4A5360"}}>Prix honoraires inclus. Honoraires : [X] % TTC du prix hors honoraires, soit [X] € TTC, à la charge de l’acquéreur. Prix hors honoraires : [X] €. <Link href="/bareme-honoraires">Barème</Link></span></>) : null}</div>
 <div style={{height: "1px", background: "#ECE8E0"}}></div>
-<div style={{display: "flex", gap: "12px", alignItems: "center"}}><img src="/images/myriam.jpg" alt="Myriam Verzeaux" style={{width: "56px", height: "56px", flex: "0 0 56px", borderRadius: "999px", objectFit: "cover", border: "2px solid #C9A86A"}} /><div><div style={{fontWeight: "600"}}>Myriam Verzeaux · <a href="tel:+33658434998" style={{color: "#1F3A2E"}}>06 58 43 49 98</a></div><div style={{fontSize: "13px", color: "#4A5360"}}>Vous recontacte pour confirmer la visite</div></div></div>
+<div style={{display: "flex", gap: "12px", alignItems: "center"}}><img src="/images/myriam.jpg" alt="Myriam Verzeaux" style={{width: "56px", height: "56px", flex: "0 0 56px", borderRadius: "999px", objectFit: "cover", border: "2px solid #C9A86A"}} /><div><div style={{fontWeight: "600"}}>Myriam Verzeaux · <a href="tel:+33658434998" style={{color: "#1F3A2E", whiteSpace: "nowrap"}}>06 58 43 49 98</a></div><div style={{fontSize: "13px", color: "#4A5360"}}>Vous recontacte pour confirmer la visite</div></div></div>
 <span style={{fontSize: "13px", fontWeight: "600", color: "#4A5360"}}>Vos disponibilités pour une visite</span>
 <div style={{display: "flex", flexWrap: "wrap", gap: "8px"}}>
 {(slots || []).map((s, __i) => (<Fragment key={__i}><button type="button" onClick={s.pick} style={{minHeight: "44px", padding: "0 14px", borderRadius: "10px", cursor: "pointer", font: "500 14px Inter,sans-serif", border: `1.5px solid ${s.bd}`, background: s.bg, color: s.fg}}>{s.l}</button></Fragment>))}
 </div>
-<button type="button" style={{minHeight: "52px", border: "0", borderRadius: "12px", background: "#1F3A2E", color: "#FFFFFF", font: "600 16px Inter,sans-serif", cursor: "pointer"}}>Demander une visite</button>
-<button type="button" style={{minHeight: "50px", border: "1.5px solid #1A1F24", borderRadius: "12px", background: "#FFFFFF", color: "#1A1F24", font: "600 15px Inter,sans-serif", cursor: "pointer"}}>Nous contacter</button>
+<form onSubmit={demanderVisite} noValidate style={{display: "flex", flexDirection: "column", gap: "10px"}}>
+<label style={{fontSize: "13px", fontWeight: 600, color: "#4A5360"}}>Prénom et nom<input type="text" name="nom" autoComplete="name" style={{display: "block", width: "100%", boxSizing: "border-box", marginTop: "4px", minHeight: "46px", border: "1px solid #D9D3C7", borderRadius: "10px", padding: "0 12px", font: "16px Inter,sans-serif"}} /></label>
+<label style={{fontSize: "13px", fontWeight: 600, color: "#4A5360"}}>Téléphone<input type="tel" name="telephone" autoComplete="tel" style={{display: "block", width: "100%", boxSizing: "border-box", marginTop: "4px", minHeight: "46px", border: "1px solid #D9D3C7", borderRadius: "10px", padding: "0 12px", font: "16px Inter,sans-serif"}} /></label>
+<label style={{fontSize: "13px", fontWeight: 600, color: "#4A5360"}}>E-mail<input type="email" name="email" autoComplete="email" style={{display: "block", width: "100%", boxSizing: "border-box", marginTop: "4px", minHeight: "46px", border: "1px solid #D9D3C7", borderRadius: "10px", padding: "0 12px", font: "16px Inter,sans-serif"}} /></label>
+<input type="text" name="site" tabIndex={-1} autoComplete="off" aria-hidden="true" style={PIEGE_STYLE} /><button type="submit" disabled={envoi.enCours} style={{minHeight: "52px", border: "0", borderRadius: "12px", background: "#1F3A2E", color: "#FFFFFF", font: "600 16px Inter,sans-serif", cursor: "pointer"}}>{envoi.enCours ? "Envoi…" : "Demander une visite"}</button>{envoi.msg ? (<p role="status" style={{margin: 0, fontSize: "14px", lineHeight: 1.5, color: envoi.ok ? "#1F3A2E" : "#B42318", fontWeight: 600}}>{envoi.msg}</p>) : null}</form>
+<Link href="/contact" style={{minHeight: "50px", border: "1.5px solid #1A1F24", borderRadius: "12px", background: "#FFFFFF", color: "#1A1F24", font: "600 15px Inter,sans-serif", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", color: "#1A1F24", boxSizing: "border-box"}}>Nous contacter</Link>
 <div style={{display: "flex", justifyContent: "center", gap: "20px", fontSize: "14px", fontWeight: "600"}}><a href="tel:+33658434998">Appeler</a><a href="mailto:myriam@happyfewimmobilier.com">E-mail</a><a href="https://wa.me/33658434998">WhatsApp</a></div>
 </aside>
 </section>
