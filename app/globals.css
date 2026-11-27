@@ -1,0 +1,4 @@
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: #FFFFFF; font-family: Inter, sans-serif; color: #1A1F24; }
+img { max-width: 100%; }
