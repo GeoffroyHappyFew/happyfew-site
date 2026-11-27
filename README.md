@@ -10,6 +10,15 @@ npm run dev      # http://localhost:3000
 npm run build    # vérification avant mise en ligne
 ```
 
+## Variables d'environnement
+
+À définir dans Vercel (Settings → Environment Variables), jamais dans le code — voir `.env.example` :
+
+- `SUPABASE_URL` : URL du projet Supabase (région Paris).
+- `SUPABASE_SECRET_KEY` : clé secrète Supabase (`sb_secret_…`), utilisée uniquement côté serveur.
+
+Les formulaires (contact, estimation, demande de visite) envoient vers `/api/demandes`, qui enregistre dans la table `demandes`.
+
 ## Organisation
 
 - `app/<route>/page.tsx` : une page par adresse, avec son titre et sa description (SEO).
@@ -31,7 +40,7 @@ npm run build    # vérification avant mise en ligne
 
 ## Reste à faire (V1)
 
-- Brancher les formulaires (contact, visite, estimation, alerte) sur Supabase + envoi d'e-mail.
+- Notification e-mail à chaque nouvelle demande ; formulaire « Créer une alerte ».
 - Générer les fiches biens depuis une table « annonces » (aujourd'hui : données figées).
 - Données structurées (RealEstateAgent, annonces, fil d'Ariane, FAQ).
 - Carte (secteurs, liste des biens).
