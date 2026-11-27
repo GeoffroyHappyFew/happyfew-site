@@ -17,7 +17,9 @@ npm run build    # vérification avant mise en ligne
 - `SUPABASE_URL` : URL du projet Supabase (région Paris).
 - `SUPABASE_SECRET_KEY` : clé secrète Supabase (`sb_secret_…`), utilisée uniquement côté serveur.
 
-Les formulaires (contact, estimation, demande de visite) envoient vers `/api/demandes`, qui enregistre dans la table `demandes`.
+- `RESEND_API_KEY`, `NOTIFY_EMAIL`, `RESEND_FROM` : notification e-mail (Resend) à chaque nouvelle demande. Sans ces variables, la demande est enregistrée mais aucun e-mail n'est envoyé.
+
+Les formulaires (contact, estimation, demande de visite) envoient vers `/api/demandes`, qui enregistre dans la table `demandes` puis prévient par e-mail.
 
 ## Organisation
 
@@ -40,7 +42,7 @@ Les formulaires (contact, estimation, demande de visite) envoient vers `/api/dem
 
 ## Reste à faire (V1)
 
-- Notification e-mail à chaque nouvelle demande ; formulaire « Créer une alerte ».
+- Formulaire « Créer une alerte ».
 - Générer les fiches biens depuis une table « annonces » (aujourd'hui : données figées).
 - Données structurées (RealEstateAgent, annonces, fil d'Ariane, FAQ).
 - Carte (secteurs, liste des biens).
